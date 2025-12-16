@@ -2,6 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.4.8'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'checkstyle'
 }
 
 group = 'com.example'
@@ -28,6 +29,36 @@ dependencies {
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
+// Ensure style checks are part of the standard verification phase
+tasks.named('check') {
+	dependsOn 'checkstyleMain', 'checkstyleTest'
+}
+
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+checkstyle {
+	// Use a widely compatible Checkstyle version
+	// 10.12.x supports Java 17 and is stable
+	toolVersion = '10.12.4'
+	configFile = file("$rootDir/config/checkstyle/checkstyle.xml")
+	configProperties = [
+		'checkstyle.cache.file': "$buildDir/checkstyle/cachefile"
+	]
+	configDirectory = file("$rootDir/config/checkstyle")
+	// Ensure consistent character set
+	getConfigProperties().put('charset', 'UTF-8')
+	// Show violations in console output
+	showViolations = true
+}
+
+tasks.withType(Checkstyle).configureEach {
+	// Don't fail the build on style violations to keep CI moving;
+	// adjust to 'true' for stricter enforcement
+	ignoreFailures = true
+	reports {
+		xml.required = false
+		html.required = true
+	}
 }
